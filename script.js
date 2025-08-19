@@ -10,23 +10,21 @@ let gameOver = false;
 const gravity = 0.25;
 const jump = 4.6;
 
-// Load sounds
+// Sounds
 const flapSound = new Audio("flap.wav");
 const pointSound = new Audio("point.wav");
 const hitSound = new Audio("hit.wav");
 const dieSound = new Audio("die.wav");
 const swooshSound = new Audio("swoosh.wav");
 
-// Load coin
+// Coin
 const coinImg = new Image();
 coinImg.src = "xioncoin.png";
 
-// Bird/coin
+// Bird
 let bird = {
   x: 50,
   y: 150,
-  w: 20,
-  h: 20,
   radius: 12,
   velocity: 0,
   draw() {
@@ -60,14 +58,10 @@ function spawnPipe() {
 }
 
 function drawPipes() {
-  ctx.fillStyle = "#228B22"; // green pipe color
+  ctx.fillStyle = "#228B22";
   pipes.forEach(pipe => {
-    // top pipe
     ctx.fillRect(pipe.x, 0, pipe.width, pipe.y);
-    // pipe cap
     ctx.fillRect(pipe.x - 2, pipe.y - 20, pipe.width + 4, 20);
-
-    // bottom pipe
     ctx.fillRect(pipe.x, pipe.y + pipe.gap, pipe.width, canvas.height);
     ctx.fillRect(pipe.x - 2, pipe.y + pipe.gap, pipe.width + 4, 20);
   });
@@ -77,7 +71,6 @@ function updatePipes() {
   pipes.forEach(pipe => {
     pipe.x -= 2;
 
-    // collision detection
     if (
       bird.x + bird.radius > pipe.x &&
       bird.x - bird.radius < pipe.x + pipe.width &&
@@ -108,7 +101,7 @@ function updatePipes() {
   }
 }
 
-// Game loop
+// Draw
 function draw() {
   ctx.fillStyle = "#87CEEB";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -116,35 +109,48 @@ function draw() {
   bird.draw();
   drawPipes();
 
+  // Live score + best score while playing
   ctx.fillStyle = "#000";
-  ctx.font = "20px Arial";
+  ctx.font = "18px Arial";
   ctx.fillText(`Score: ${score}`, 10, 25);
+  ctx.fillText(`Best: ${bestScore}`, 10, 50);
 
-  if (gameOver) {
-    // Game Over banner
+  // Start Screen
+  if (!gameStarted && !gameOver) {
     ctx.fillStyle = "#FFD700";
-    ctx.fillRect(canvas.width / 2 - 90, canvas.height / 2 - 60, 180, 50);
+    ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 - 30, 140, 40);
     ctx.strokeStyle = "#000";
-    ctx.strokeRect(canvas.width / 2 - 90, canvas.height / 2 - 60, 180, 50);
+    ctx.strokeRect(canvas.width / 2 - 70, canvas.height / 2 - 30, 140, 40);
+    ctx.fillStyle = "#000";
+    ctx.font = "20px Arial";
+    ctx.fillText("Start", canvas.width / 2 - 25, canvas.height / 2 - 5);
+  }
+
+  // Game Over screen
+  if (gameOver) {
+    ctx.fillStyle = "#FFD700";
+    ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 - 80, 200, 120);
+    ctx.strokeStyle = "#000";
+    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2 - 80, 200, 120);
 
     ctx.fillStyle = "#000";
-    ctx.font = "22px Arial";
-    ctx.fillText("Game Over", canvas.width / 2 - 55, canvas.height / 2 - 30);
+    ctx.font = "24px Arial";
+    ctx.fillText("Game Over", canvas.width / 2 - 65, canvas.height / 2 - 45);
 
-    // Score display
     ctx.font = "18px Arial";
-    ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 + 10);
-    ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 40, canvas.height / 2 + 35);
+    ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 - 15);
+    ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 40, canvas.height / 2 + 15);
 
-    // Restart button inside canvas
+    // Restart button
     ctx.fillStyle = "#f44336";
-    ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 60, 100, 35);
+    ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 40, 100, 35);
     ctx.fillStyle = "#fff";
     ctx.font = "18px Arial";
-    ctx.fillText("Restart", canvas.width / 2 - 32, canvas.height / 2 + 85);
+    ctx.fillText("Restart", canvas.width / 2 - 32, canvas.height / 2 + 65);
   }
 }
 
+// Update
 function update() {
   if (!gameOver && gameStarted) {
     bird.update();
@@ -159,25 +165,34 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// Restart check inside canvas
+// Controls
 canvas.addEventListener("click", function (e) {
-  if (!gameStarted) {
-    gameStarted = true;
-    swooshSound.play();
-    bird.flap();
-    return;
-  }
-  if (gameOver) {
-    let rect = canvas.getBoundingClientRect();
-    let clickX = e.clientX - rect.left;
-    let clickY = e.clientY - rect.top;
+  let rect = canvas.getBoundingClientRect();
+  let clickX = e.clientX - rect.left;
+  let clickY = e.clientY - rect.top;
 
-    // Restart button area
+  if (!gameStarted && !gameOver) {
+    // Start button
+    if (
+      clickX >= canvas.width / 2 - 70 &&
+      clickX <= canvas.width / 2 + 70 &&
+      clickY >= canvas.height / 2 - 30 &&
+      clickY <= canvas.height / 2 + 10
+    ) {
+      gameStarted = true;
+      swooshSound.play();
+      bird.flap();
+      return;
+    }
+  }
+
+  if (gameOver) {
+    // Restart button
     if (
       clickX >= canvas.width / 2 - 50 &&
       clickX <= canvas.width / 2 + 50 &&
-      clickY >= canvas.height / 2 + 60 &&
-      clickY <= canvas.height / 2 + 95
+      clickY >= canvas.height / 2 + 40 &&
+      clickY <= canvas.height / 2 + 75
     ) {
       resetGame();
     }
