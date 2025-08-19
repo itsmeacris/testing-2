@@ -1,5 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const scale = canvas.width / 400; // used to scale text/buttons for all screens
 
 let frames = 0;
 let score = 0;
@@ -212,4 +213,5 @@ function resetGame() {
 
 loop();
 const scale = canvas.width / 400; // used to scale text/buttons for all screens
+
 
