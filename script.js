@@ -129,26 +129,27 @@ function draw() {
 
   // Game Over screen
   if (gameOver) {
-    ctx.fillStyle = "#FFD700";
-    ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 - 80, 200, 120);
-    ctx.strokeStyle = "#000";
-    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2 - 80, 200, 120);
+  // Yellow Box
+  ctx.fillStyle = "#FFD700";
+  ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
+  ctx.strokeStyle = "#000";
+  ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
 
-    ctx.fillStyle = "#000";
-    ctx.font = "24px Arial";
-    ctx.fillText("Game Over", canvas.width / 2 - 65, canvas.height / 2 - 45);
+  // Text inside box
+  ctx.fillStyle = "#000";
+  ctx.font = `${24 * scale}px Arial`;
+  ctx.fillText("Game Over", canvas.width / 2 - 70, canvas.height / 2 - 65);
 
-    ctx.font = "18px Arial";
-    ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 - 15);
-    ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 40, canvas.height / 2 + 15);
+  ctx.font = `${18 * scale}px Arial`;
+  ctx.fillText(`Score: ${score}`, canvas.width / 2 - 50, canvas.height / 2 - 35);
+  ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 50, canvas.height / 2 - 10);
 
-    // Restart button
-    ctx.fillStyle = "#f44336";
-    ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 40, 100, 35);
-    ctx.fillStyle = "#fff";
-    ctx.font = "18px Arial";
-    ctx.fillText("Restart", canvas.width / 2 - 32, canvas.height / 2 + 65);
-  }
+  // Restart button BELOW the box
+  ctx.fillStyle = "#f44336";
+  ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 + 50, 140, 45);
+  ctx.fillStyle = "#fff";
+  ctx.font = `${20 * scale}px Arial`;
+  ctx.fillText("Restart", canvas.width / 2 - 40, canvas.height / 2 + 78);
 }
 
 // Update
@@ -213,5 +214,6 @@ function resetGame() {
 
 loop();
 const scale = canvas.width / 400; // used to scale text/buttons for all screens
+
 
 
