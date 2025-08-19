@@ -211,3 +211,5 @@ function resetGame() {
 }
 
 loop();
+const scale = canvas.width / 400; // used to scale text/buttons for all screens
+
