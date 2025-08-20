@@ -7,6 +7,7 @@
   <style>
     body {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       background: #222;
@@ -15,15 +16,30 @@
     }
     canvas {
       background: #87CEEB;
-      display: block;
       border: 2px solid black;
       border-radius: 10px;
-      touch-action: manipulation; /* stops zooming on tap */
+      touch-action: manipulation;
+    }
+    #restartBtn {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #ffcc00;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    }
+    #restartBtn:hover {
+      background: #ffdb4d;
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <button id="restartBtn">Restart</button>
   <script src="script.js"></script>
 </body>
 </html>
