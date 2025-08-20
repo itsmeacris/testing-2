@@ -1,33 +1,44 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let coinImg = new Image();
+canvas.width = 400;
+canvas.height = 600;
+
+let gameRunning = false;
+let gameOver = false;
+let score = 0;
+let bestScore = localStorage.getItem("bestScore") || 0;
+
+// Images
+const coinImg = new Image();
 coinImg.src = "xioncoin.png";
 
 // Sounds
-let flapSound = new Audio("flap.mp3");
-let pointSound = new Audio("point.mp3");
-let hitSound = new Audio("hit.mp3");
-let dieSound = new Audio("die.mp3");
-let swooshSound = new Audio("swoosh.mp3");
+const flapSound = new Audio("flap.wav");
+const pointSound = new Audio("point.wav");
+const hitSound = new Audio("hit.wav");
+const dieSound = new Audio("die.wav");
+const swooshSound = new Audio("swoosh.wav");
 
-// Game vars
-let frames = 0;
-let pipes = [];
-let score = 0;
-let bestScore = localStorage.getItem("bestScore") || 0;
-let gameStarted = false;
-let gameOver = false;
-
-// Scaling for text/buttons
-const scale = canvas.width / 400;
+// Unlock audio (required on browsers)
+function unlockAudio() {
+  [flapSound, pointSound, hitSound, dieSound, swooshSound].forEach(sound => {
+    sound.muted = true;
+    sound.play().catch(() => {});
+    sound.muted = false;
+  });
+  document.removeEventListener("click", unlockAudio);
+  document.removeEventListener("keydown", unlockAudio);
+}
+document.addEventListener("click", unlockAudio);
+document.addEventListener("keydown", unlockAudio);
 
 // Player
 const player = {
   x: 50,
   y: 150,
-  w: 30,
-  h: 30,
+  get w() { return canvas.width * 0.08; }, // coin scales with canvas
+  get h() { return this.w; },
   gravity: 0.25,
   lift: -4.6,
   velocity: 0,
@@ -35,13 +46,12 @@ const player = {
     ctx.drawImage(coinImg, this.x, this.y, this.w, this.h);
   },
   update() {
-    if (!gameStarted) return;
     this.velocity += this.gravity;
     this.y += this.velocity;
-
     if (this.y + this.h > canvas.height) {
       this.y = canvas.height - this.h;
-      gameOver = true;
+      this.velocity = 0;
+      endGame();
     }
     if (this.y < 0) this.y = 0;
   },
@@ -52,169 +62,43 @@ const player = {
 };
 
 // Pipes
-function Pipe() {
-  this.top = Math.random() * (canvas.height / 2);
-  this.bottom = canvas.height - this.top - 120;
-  this.x = canvas.width;
-  this.w = 50;
-  this.speed = 2;
-  this.passed = false;
+let pipes = [];
+function createPipe() {
+  let gap = 120;
+  let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
+  pipes.push({
+    x: canvas.width,
+    y: topHeight,
+    width: 60,
+    gap: gap
+  });
+}
+function updatePipes() {
+  for (let i = 0; i < pipes.length; i++) {
+    let p = pipes[i];
+    p.x -= 2;
 
-  this.draw = function () {
+    // Draw pipe (flappy style)
     ctx.fillStyle = "#228B22";
-    // top pipe
-    ctx.fillRect(this.x, 0, this.w, this.top);
-    ctx.fillRect(this.x - 5, this.top - 20, this.w + 10, 20);
-    // bottom pipe
-    ctx.fillRect(this.x, canvas.height - this.bottom, this.w, this.bottom);
-    ctx.fillRect(this.x - 5, canvas.height - this.bottom, this.w + 10, 20);
-  };
+    ctx.fillRect(p.x, 0, p.width, p.y);
+    ctx.fillRect(p.x, p.y + p.gap, p.width, canvas.height - p.y - p.gap);
 
-  this.update = function () {
-    this.x -= this.speed;
-    if (this.x + this.w < 0) {
-      pipes.shift();
-    }
-    // score
-    if (!this.passed && this.x + this.w < player.x) {
-      score++;
-      pointSound.play();
-      this.passed = true;
-      if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem("bestScore", bestScore);
-      }
-    }
-    // collision
+    // Check collision
     if (
-      player.x < this.x + this.w &&
-      player.x + player.w > this.x &&
-      (player.y < this.top || player.y + player.h > canvas.height - this.bottom)
+      player.x < p.x + p.width &&
+      player.x + player.w > p.x &&
+      (player.y < p.y || player.y + player.h > p.y + p.gap)
     ) {
       hitSound.play();
-      dieSound.play();
-      gameOver = true;
+      endGame();
     }
-  };
-}
 
-// Reset
-function resetGame() {
-  player.y = 150;
-  player.velocity = 0;
-  pipes = [];
-  score = 0;
-  gameOver = false;
-  gameStarted = true;
-  swooshSound.play();
-}
-
-// Draw
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // background sky
-  ctx.fillStyle = "#87CEEB";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  player.draw();
-  for (let p of pipes) p.draw();
-
-  // Score live
-  if (gameStarted && !gameOver) {
-    ctx.fillStyle = "#fff";
-    ctx.font = `${32 * scale}px Arial`;
-    ctx.fillText(score, canvas.width / 2 - 10, 50);
-  }
-
-  // Start screen
-  if (!gameStarted && !gameOver) {
-    ctx.fillStyle = "#FFD700";
-    ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 - 50, 200, 100);
-    ctx.strokeStyle = "#000";
-    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2 - 50, 200, 100);
-
-    ctx.fillStyle = "#000";
-    ctx.font = `${22 * scale}px Arial`;
-    ctx.fillText("Start Game", canvas.width / 2 - 60, canvas.height / 2 - 15);
-
-    ctx.font = `${16 * scale}px Arial`;
-    ctx.fillText("Press SPACE or TAP", canvas.width / 2 - 80, canvas.height / 2 + 20);
-  }
-
-  // Game Over UI
-  if (gameOver) {
-    // Yellow Box
-    ctx.fillStyle = "#FFD700";
-    ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
-    ctx.strokeStyle = "#000";
-    ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
-
-    // Text inside box
-    ctx.fillStyle = "#000";
-    ctx.font = `${24 * scale}px Arial`;
-    ctx.fillText("Game Over", canvas.width / 2 - 70, canvas.height / 2 - 65);
-
-    ctx.font = `${18 * scale}px Arial`;
-    ctx.fillText(`Score: ${score}`, canvas.width / 2 - 50, canvas.height / 2 - 35);
-    ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 50, canvas.height / 2 - 10);
-
-    // Restart button
-    ctx.fillStyle = "#f44336";
-    ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 + 50, 140, 45);
-    ctx.fillStyle = "#fff";
-    ctx.font = `${20 * scale}px Arial`;
-    ctx.fillText("Restart", canvas.width / 2 - 40, canvas.height / 2 + 78);
-  }
-}
-
-// Update
-function update() {
-  if (gameStarted && !gameOver) {
-    player.update();
-    if (frames % 90 === 0) {
-      pipes.push(new Pipe());
+    // Score
+    if (p.x + p.width === player.x) {
+      score++;
+      pointSound.play();
     }
-    for (let p of pipes) p.update();
   }
-  frames++;
-  draw();
-  requestAnimationFrame(update);
-}
 
-// Input
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") {
-    if (!gameStarted) {
-      gameStarted = true;
-      swooshSound.play();
-    }
-    if (!gameOver) player.flap();
-  }
-});
-
-canvas.addEventListener("click", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  if (!gameStarted) {
-    gameStarted = true;
-    swooshSound.play();
-    player.flap();
-  } else if (gameOver) {
-    if (
-      clickX >= canvas.width / 2 - 70 &&
-      clickX <= canvas.width / 2 + 70 &&
-      clickY >= canvas.height / 2 + 50 &&
-      clickY <= canvas.height / 2 + 95
-    ) {
-      resetGame();
-    }
-  } else {
-    player.flap();
-  }
-});
-
-// Start loop
-update();
+  // Remove off-screen pipes
+  if (pi
