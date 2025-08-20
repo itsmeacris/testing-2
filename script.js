@@ -1,218 +1,220 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const scale = canvas.width / 400; // used to scale text/buttons for all screens
 
+let coinImg = new Image();
+coinImg.src = "xioncoin.png";
+
+// Sounds
+let flapSound = new Audio("flap.mp3");
+let pointSound = new Audio("point.mp3");
+let hitSound = new Audio("hit.mp3");
+let dieSound = new Audio("die.mp3");
+let swooshSound = new Audio("swoosh.mp3");
+
+// Game vars
 let frames = 0;
+let pipes = [];
 let score = 0;
 let bestScore = localStorage.getItem("bestScore") || 0;
 let gameStarted = false;
 let gameOver = false;
 
-const gravity = 0.25;
-const jump = 4.6;
+// Scaling for text/buttons
+const scale = canvas.width / 400;
 
-// Sounds
-const flapSound = new Audio("flap.wav");
-const pointSound = new Audio("point.wav");
-const hitSound = new Audio("hit.wav");
-const dieSound = new Audio("die.wav");
-const swooshSound = new Audio("swoosh.wav");
-
-// Coin
-const coinImg = new Image();
-coinImg.src = "xioncoin.png";
-
-// Bird
-let bird = {
+// Player
+const player = {
   x: 50,
   y: 150,
-  radius: 12,
+  w: 30,
+  h: 30,
+  gravity: 0.25,
+  lift: -4.6,
   velocity: 0,
   draw() {
-    ctx.drawImage(coinImg, this.x - 12, this.y - 12, 24, 24);
+    ctx.drawImage(coinImg, this.x, this.y, this.w, this.h);
   },
   update() {
-    this.velocity += gravity;
+    if (!gameStarted) return;
+    this.velocity += this.gravity;
     this.y += this.velocity;
-    if (this.y + this.radius > canvas.height) {
-      this.y = canvas.height - this.radius;
+
+    if (this.y + this.h > canvas.height) {
+      this.y = canvas.height - this.h;
       gameOver = true;
     }
+    if (this.y < 0) this.y = 0;
   },
   flap() {
-    this.velocity = -jump;
+    this.velocity = this.lift;
     flapSound.play();
-  },
+  }
 };
 
 // Pipes
-let pipes = [];
-function spawnPipe() {
-  let gap = 90;
-  let topHeight = Math.floor(Math.random() * (canvas.height / 2));
-  pipes.push({
-    x: canvas.width,
-    y: topHeight,
-    width: 52,
-    gap: gap,
-  });
-}
+function Pipe() {
+  this.top = Math.random() * (canvas.height / 2);
+  this.bottom = canvas.height - this.top - 120;
+  this.x = canvas.width;
+  this.w = 50;
+  this.speed = 2;
+  this.passed = false;
 
-function drawPipes() {
-  ctx.fillStyle = "#228B22";
-  pipes.forEach(pipe => {
-    ctx.fillRect(pipe.x, 0, pipe.width, pipe.y);
-    ctx.fillRect(pipe.x - 2, pipe.y - 20, pipe.width + 4, 20);
-    ctx.fillRect(pipe.x, pipe.y + pipe.gap, pipe.width, canvas.height);
-    ctx.fillRect(pipe.x - 2, pipe.y + pipe.gap, pipe.width + 4, 20);
-  });
-}
+  this.draw = function () {
+    ctx.fillStyle = "#228B22";
+    // top pipe
+    ctx.fillRect(this.x, 0, this.w, this.top);
+    ctx.fillRect(this.x - 5, this.top - 20, this.w + 10, 20);
+    // bottom pipe
+    ctx.fillRect(this.x, canvas.height - this.bottom, this.w, this.bottom);
+    ctx.fillRect(this.x - 5, canvas.height - this.bottom, this.w + 10, 20);
+  };
 
-function updatePipes() {
-  pipes.forEach(pipe => {
-    pipe.x -= 2;
-
-    if (
-      bird.x + bird.radius > pipe.x &&
-      bird.x - bird.radius < pipe.x + pipe.width &&
-      (bird.y - bird.radius < pipe.y ||
-        bird.y + bird.radius > pipe.y + pipe.gap)
-    ) {
-      hitSound.play();
-      dieSound.play();
-      gameOver = true;
+  this.update = function () {
+    this.x -= this.speed;
+    if (this.x + this.w < 0) {
+      pipes.shift();
     }
-
-    if (pipe.x + pipe.width === bird.x) {
+    // score
+    if (!this.passed && this.x + this.w < player.x) {
       score++;
       pointSound.play();
+      this.passed = true;
       if (score > bestScore) {
         bestScore = score;
         localStorage.setItem("bestScore", bestScore);
       }
     }
-  });
+    // collision
+    if (
+      player.x < this.x + this.w &&
+      player.x + player.w > this.x &&
+      (player.y < this.top || player.y + player.h > canvas.height - this.bottom)
+    ) {
+      hitSound.play();
+      dieSound.play();
+      gameOver = true;
+    }
+  };
+}
 
-  if (pipes.length && pipes[0].x < -pipes[0].width) {
-    pipes.shift();
-  }
-
-  if (frames % 100 === 0) {
-    spawnPipe();
-  }
+// Reset
+function resetGame() {
+  player.y = 150;
+  player.velocity = 0;
+  pipes = [];
+  score = 0;
+  gameOver = false;
+  gameStarted = true;
+  swooshSound.play();
 }
 
 // Draw
 function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // background sky
   ctx.fillStyle = "#87CEEB";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  bird.draw();
-  drawPipes();
+  player.draw();
+  for (let p of pipes) p.draw();
 
-  // Live score + best score while playing
-  ctx.fillStyle = "#000";
-  ctx.font = "18px Arial";
-  ctx.fillText(`Score: ${score}`, 10, 25);
-  ctx.fillText(`Best: ${bestScore}`, 10, 50);
-
-  // Start Screen
-  if (!gameStarted && !gameOver) {
-    ctx.fillStyle = "#FFD700";
-    ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 - 30, 140, 40);
-    ctx.strokeStyle = "#000";
-    ctx.strokeRect(canvas.width / 2 - 70, canvas.height / 2 - 30, 140, 40);
-    ctx.fillStyle = "#000";
-    ctx.font = "20px Arial";
-    ctx.fillText("Start", canvas.width / 2 - 25, canvas.height / 2 - 5);
+  // Score live
+  if (gameStarted && !gameOver) {
+    ctx.fillStyle = "#fff";
+    ctx.font = `${32 * scale}px Arial`;
+    ctx.fillText(score, canvas.width / 2 - 10, 50);
   }
 
-  // Game Over screen
+  // Start screen
+  if (!gameStarted && !gameOver) {
+    ctx.fillStyle = "#FFD700";
+    ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 - 50, 200, 100);
+    ctx.strokeStyle = "#000";
+    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2 - 50, 200, 100);
+
+    ctx.fillStyle = "#000";
+    ctx.font = `${22 * scale}px Arial`;
+    ctx.fillText("Start Game", canvas.width / 2 - 60, canvas.height / 2 - 15);
+
+    ctx.font = `${16 * scale}px Arial`;
+    ctx.fillText("Press SPACE or TAP", canvas.width / 2 - 80, canvas.height / 2 + 20);
+  }
+
+  // Game Over UI
   if (gameOver) {
-  // Yellow Box
-  ctx.fillStyle = "#FFD700";
-  ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
-  ctx.strokeStyle = "#000";
-  ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
+    // Yellow Box
+    ctx.fillStyle = "#FFD700";
+    ctx.fillRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
+    ctx.strokeStyle = "#000";
+    ctx.strokeRect(canvas.width / 2 - 120, canvas.height / 2 - 100, 240, 130);
 
-  // Text inside box
-  ctx.fillStyle = "#000";
-  ctx.font = `${24 * scale}px Arial`;
-  ctx.fillText("Game Over", canvas.width / 2 - 70, canvas.height / 2 - 65);
+    // Text inside box
+    ctx.fillStyle = "#000";
+    ctx.font = `${24 * scale}px Arial`;
+    ctx.fillText("Game Over", canvas.width / 2 - 70, canvas.height / 2 - 65);
 
-  ctx.font = `${18 * scale}px Arial`;
-  ctx.fillText(`Score: ${score}`, canvas.width / 2 - 50, canvas.height / 2 - 35);
-  ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 50, canvas.height / 2 - 10);
+    ctx.font = `${18 * scale}px Arial`;
+    ctx.fillText(`Score: ${score}`, canvas.width / 2 - 50, canvas.height / 2 - 35);
+    ctx.fillText(`Best: ${bestScore}`, canvas.width / 2 - 50, canvas.height / 2 - 10);
 
-  // Restart button BELOW the box
-  ctx.fillStyle = "#f44336";
-  ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 + 50, 140, 45);
-  ctx.fillStyle = "#fff";
-  ctx.font = `${20 * scale}px Arial`;
-  ctx.fillText("Restart", canvas.width / 2 - 40, canvas.height / 2 + 78);
+    // Restart button
+    ctx.fillStyle = "#f44336";
+    ctx.fillRect(canvas.width / 2 - 70, canvas.height / 2 + 50, 140, 45);
+    ctx.fillStyle = "#fff";
+    ctx.font = `${20 * scale}px Arial`;
+    ctx.fillText("Restart", canvas.width / 2 - 40, canvas.height / 2 + 78);
+  }
 }
 
 // Update
 function update() {
-  if (!gameOver && gameStarted) {
-    bird.update();
-    updatePipes();
+  if (gameStarted && !gameOver) {
+    player.update();
+    if (frames % 90 === 0) {
+      pipes.push(new Pipe());
+    }
+    for (let p of pipes) p.update();
   }
-}
-
-function loop() {
-  update();
-  draw();
   frames++;
-  requestAnimationFrame(loop);
+  draw();
+  requestAnimationFrame(update);
 }
 
-// Controls
-canvas.addEventListener("click", function (e) {
-  let rect = canvas.getBoundingClientRect();
-  let clickX = e.clientX - rect.left;
-  let clickY = e.clientY - rect.top;
+// Input
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    if (!gameStarted) {
+      gameStarted = true;
+      swooshSound.play();
+    }
+    if (!gameOver) player.flap();
+  }
+});
 
-  if (!gameStarted && !gameOver) {
-    // Start button
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  if (!gameStarted) {
+    gameStarted = true;
+    swooshSound.play();
+    player.flap();
+  } else if (gameOver) {
     if (
       clickX >= canvas.width / 2 - 70 &&
       clickX <= canvas.width / 2 + 70 &&
-      clickY >= canvas.height / 2 - 30 &&
-      clickY <= canvas.height / 2 + 10
-    ) {
-      gameStarted = true;
-      swooshSound.play();
-      bird.flap();
-      return;
-    }
-  }
-
-  if (gameOver) {
-    // Restart button
-    if (
-      clickX >= canvas.width / 2 - 50 &&
-      clickX <= canvas.width / 2 + 50 &&
-      clickY >= canvas.height / 2 + 40 &&
-      clickY <= canvas.height / 2 + 75
+      clickY >= canvas.height / 2 + 50 &&
+      clickY <= canvas.height / 2 + 95
     ) {
       resetGame();
     }
   } else {
-    bird.flap();
+    player.flap();
   }
 });
 
-function resetGame() {
-  score = 0;
-  bird.y = 150;
-  bird.velocity = 0;
-  pipes = [];
-  gameOver = false;
-  gameStarted = false;
-}
-
-loop();
-const scale = canvas.width / 400; // used to scale text/buttons for all screens
-
-
+// Start loop
+update();
