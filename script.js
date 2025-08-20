@@ -190,15 +190,14 @@ canvas.addEventListener("click", function (e) {
 
   if (gameOver) {
     // Restart button
-  if (
-  clickX >= canvas.width / 2 - 70 &&
-  clickX <= canvas.width / 2 + 70 &&
-  clickY >= canvas.height / 2 + 50 &&
-  clickY <= canvas.height / 2 + 95
-) {
-  resetGame();
-}
-
+    if (
+      clickX >= canvas.width / 2 - 50 &&
+      clickX <= canvas.width / 2 + 50 &&
+      clickY >= canvas.height / 2 + 40 &&
+      clickY <= canvas.height / 2 + 75
+    ) {
+      resetGame();
+    }
   } else {
     bird.flap();
   }
@@ -215,7 +214,5 @@ function resetGame() {
 
 loop();
 const scale = canvas.width / 400; // used to scale text/buttons for all screens
-
-
 
 
