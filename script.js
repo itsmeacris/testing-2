@@ -1,5 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const restartBtn = document.getElementById("restartBtn");
 
 canvas.width = 400;
 canvas.height = 600;
@@ -20,7 +21,7 @@ const hitSound = new Audio("hit.wav");
 const dieSound = new Audio("die.wav");
 const swooshSound = new Audio("swoosh.wav");
 
-// Unlock audio (required on browsers)
+// Unlock audio
 function unlockAudio() {
   [flapSound, pointSound, hitSound, dieSound, swooshSound].forEach(sound => {
     sound.muted = true;
@@ -37,7 +38,7 @@ document.addEventListener("keydown", unlockAudio);
 const player = {
   x: 50,
   y: 150,
-  get w() { return canvas.width * 0.08; }, // coin scales with canvas
+  get w() { return canvas.width * 0.08; },
   get h() { return this.w; },
   gravity: 0.25,
   lift: -4.6,
@@ -61,7 +62,7 @@ const player = {
   }
 };
 
-// Pipes
+// Pipes (classic style)
 let pipes = [];
 function createPipe() {
   let gap = 120;
@@ -79,8 +80,8 @@ function updatePipes() {
     p.x -= 2;
 
     ctx.fillStyle = "#228B22";
-    ctx.fillRect(p.x, 0, p.width, p.y);
-    ctx.fillRect(p.x, p.y + p.gap, p.width, canvas.height - p.y - p.gap);
+    ctx.fillRect(p.x, 0, p.width, p.y); // top pipe
+    ctx.fillRect(p.x, p.y + p.gap, p.width, canvas.height - p.y - p.gap); // bottom pipe
 
     // Collision
     if (
@@ -110,8 +111,6 @@ document.addEventListener("keydown", (e) => {
     player.flap();
   } else if (e.code === "Space" && !gameRunning && !gameOver) {
     startGame();
-  } else if (e.code === "Enter" && gameOver) {
-    resetGame();
   }
 });
 
@@ -120,9 +119,11 @@ canvas.addEventListener("click", () => {
     player.flap();
   } else if (!gameRunning && !gameOver) {
     startGame();
-  } else if (gameOver) {
-    resetGame();
   }
+});
+
+restartBtn.addEventListener("click", () => {
+  resetGame();
 });
 
 // Game functions
@@ -135,6 +136,7 @@ function startGame() {
   player.y = 150;
   player.velocity = 0;
   createPipe();
+  restartBtn.style.display = "none";
 }
 
 function endGame() {
@@ -145,6 +147,7 @@ function endGame() {
     bestScore = score;
     localStorage.setItem("bestScore", bestScore);
   }
+  restartBtn.style.display = "block";
 }
 
 function resetGame() {
@@ -172,9 +175,6 @@ function drawGameOver() {
   ctx.font = "18px Arial";
   ctx.fillText("Score: " + score, canvas.width / 2 - 50, canvas.height / 2 + 10);
   ctx.fillText("Best: " + bestScore, canvas.width / 2 - 50, canvas.height / 2 + 40);
-
-  ctx.font = "16px Arial";
-  ctx.fillText("Tap or Press Enter to Restart", canvas.width / 2 - 120, canvas.height / 2 + 70);
 }
 
 // Loop
