@@ -1,10 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Flappy XION Coin</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>XION Flappy Coin</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #222;
+      height: 100vh;
+      margin: 0;
+    }
+    canvas {
+      background: #87CEEB;
+      display: block;
+      border: 2px solid black;
+      border-radius: 10px;
+      touch-action: manipulation; /* stops zooming on tap */
+    }
+  </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
